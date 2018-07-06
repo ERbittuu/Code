@@ -27,31 +27,13 @@ class HomeController: UIViewController {
         tableView.pagingDelegate = self
         
         // view controller UI setup
-        largeTitle(text: "Instagram")
+        largeTitle(text: "INSTAGRAM PHOTOS")
         searchBar(shows: true)
         
         if Instagram.shared.isAuthenticated {
-            loginButton.isHidden = true
-            
-            self.navigationItem.addbutton(onRight: true, type: .profile) { (button) in
-                
-            }
-            
-            self.navigationItem.addbutton(onRight: false, type: .logout) { (button) in
-                self.viewModel.logoutFromInstagram()
-                
-                // UI updates
-                self.loginButton.isHidden = false
-                self.navigationItem.removeButton(onRight: true)
-                self.navigationItem.removeButton(onRight: false)
-                
-                self.tableView.reloadData()
-                self.tableView.alpha = 0
-            }
-            
             self.startInstagram()
         }else{
-            loginButton.isHidden = false
+            self.logoutFromInstagram()
         }
     }
     
@@ -59,7 +41,29 @@ class HomeController: UIViewController {
         super.viewWillAppear(animated)
     }
     
+    func logoutFromInstagram() {
+        self.viewModel.logoutFromInstagram()
+        
+        // UI updates
+        self.loginButton.isHidden = false
+        self.navigationItem.removeButton(onRight: true)
+        self.navigationItem.removeButton(onRight: false)
+        
+        self.tableView.reloadData()
+        self.tableView.alpha = 0
+    }
+    
     func startInstagram() {
+        
+        loginButton.isHidden = true
+        
+        self.navigationItem.addbutton(onRight: true, type: .profile) { (button) in
+            
+        }
+        
+        self.navigationItem.addbutton(onRight: false, type: .logout) { (button) in
+            self.logoutFromInstagram()
+        }
         
         // Init the static view
         initView()

@@ -24,7 +24,8 @@ class InstagramLoginViewController: UIViewController {
 
     private var progressView: UIProgressView!
     private var webViewObservation: NSKeyValueObservation!
-
+    private var webView: WKWebView!
+    
     // MARK: - Initializers
 
     required init?(coder aDecoder: NSCoder) {
@@ -52,7 +53,7 @@ class InstagramLoginViewController: UIViewController {
         setupProgressView()
 
         // Initializes web view
-        let webView = setupWebView()
+        webView = setupWebView()
 
         // Starts authorization
         webView.load(URLRequest(url: authURL, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData))
@@ -62,7 +63,17 @@ class InstagramLoginViewController: UIViewController {
         progressView.removeFromSuperview()
         webViewObservation.invalidate()
     }
-
+    
+    override func viewWillDisappear(_ animated : Bool) {
+        super.viewWillDisappear(animated)
+        
+        if self.isMovingFromParentViewController {
+            progressView.alpha = 0.0
+            progressView.setProgress(0, animated: true)
+            stopLoading()
+        }
+    }
+    
     // MARK: -
 
     private func setupProgressView() {
@@ -82,6 +93,12 @@ class InstagramLoginViewController: UIViewController {
         NSLayoutConstraint.activate([bottomConstraint, leftConstraint, rightConstraint])
     }
 
+    private func stopLoading() {
+        webView.stopLoading()
+        webView.removeFromSuperview()
+        webView = nil
+    }
+    
     private func setupWebView() -> WKWebView {
         let webConfiguration = WKWebViewConfiguration()
         webConfiguration.websiteDataStore = .nonPersistent()
