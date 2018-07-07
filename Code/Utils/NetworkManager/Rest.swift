@@ -28,7 +28,7 @@ public enum RestError: Error {
 public typealias Handler<T: Decodable> = (_ data: T?, RestError?) -> Void
 
 fileprivate class Network {
-     static func isAvailable() -> Bool {
+    static func isAvailable() -> Bool {
         var zeroAddress = sockaddr_in()
         zeroAddress.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
         zeroAddress.sin_family = sa_family_t(AF_INET)
@@ -69,7 +69,7 @@ open class Rest {
         
         /// Network Activity Indicator display default is true
         public static var activityIndicatorDisplay : Bool = true
-
+        
     }
     private static var indexRequest = 0
     
@@ -92,7 +92,7 @@ open class Rest {
      - parameter url:        the url you want
      - parameter timeout:    time out setting
      - parameter flow:       behaviour of webservice
-
+     
      - returns: a Rest object
      */
     open static func prepare(HTTPMethod method: HTTPMethod, url: String, timeout: Double = Rest.default.timeout, flow: Flow = .async) -> Rest {
@@ -225,8 +225,8 @@ private class RestManager: NSObject {
     var urlParams: [Any]?
     var files: [File]?
     
-//    var callback: ((_ data: Decodable?, _ error: NSError?) -> Void)?
-
+    //    var callback: ((_ data: Decodable?, _ error: NSError?) -> Void)?
+    
     var cancelToken: CancellationToken? = nil
     
     var session: URLSession!
@@ -306,8 +306,19 @@ private class RestManager: NSObject {
             }
         }
         
+        Rest.log(str: "Rest Request START - - - - - - -  - -  - -  - -")
+        
         if let a = self.request.allHTTPHeaderFields {
             Rest.log(str: "Rest Request HEADERS: " + a.description)
+        }
+        
+        if let a = request {
+            Rest.log(str: "Rest Request: " + a.description)
+            Rest.log(str: "Rest Request METHOD: " + method)
+        }
+        
+        if method != "GET" && self.params?.count > 0 {
+            Rest.log(str: "Rest Request PARAMS: " + self.params!.description)
         }
         
         let semaphore = DispatchSemaphore(value: 0)
@@ -326,19 +337,20 @@ private class RestManager: NSObject {
             
             if let error = error as NSError? {
                 if error.code == -999 { // NSURLErrorCancelled
-                    Rest.log(str: "Rest Cancel Manually: " + self.url)
+                    Rest.log(str: "Rest Cancel Manually RESPONSE: " + self.url)
+                    DispatchQueue.main.async {
+                        callback(nil, RestError.decoding(message: "Request Canceled Manually"))
+                    }
                 } else {
                     let e = NSError(domain: RestManager.errorDomain, code: error.code, userInfo: error.userInfo)
-                    Rest.log(str: "Rest Error: " + e.localizedDescription)
+                    Rest.log(str: "Rest Error RESPONSE : " + e.localizedDescription)
                     DispatchQueue.main.async {
                         callback(nil, RestError.decoding(message: error.localizedDescription))
                     }
                 }
+                Rest.log(str: "Rest Request END - - - - - - -  - -  - -  - - \n")
             }
             else {
-                if let a = response {
-                    Rest.log(str: "Rest Response: " + a.description)
-                }
                 
                 DispatchQueue.global(qos: .utility).async {
                     do {
@@ -347,29 +359,31 @@ private class RestManager: NSObject {
                             jsonDecoder.keyDecodingStrategy = .convertFromSnakeCase
                             let object = try jsonDecoder.decode(T.self, from: data)
                             
+                            if let responceString = String(data: data, encoding: .utf8) {
+                                Rest.log(str: "Rest RESPONSE : " + responceString.description)
+                            } else {
+                                Rest.log(str: "Rest RESPONSE : Unable to log responce string")
+                            }
                             DispatchQueue.main.async {
                                 callback(object, nil)
                             }
-                            
-                            if let responceString = String(data: data, encoding: .utf8) {
-                                Rest.log(str: "Rest Response: " + responceString.description)
-                            } else {
-                                Rest.log(str: "Rest response : Unable to log responce string")
-                            }
                         }else{
+                            Rest.log(str: "Rest RESPONSE : ERROR data is nil from server")
                             DispatchQueue.main.async {
                                 callback(nil, nil)
                             }
-                            Rest.log(str: "Rest response : ERROR data is nil from server")
                         }
+                        Rest.log(str: "Rest Request END - - - - - - -  - -  - -  - - \n")
                     } catch let error {
+                        Rest.log(str: "Rest RESPONSE : \(error.localizedDescription)")
+                        Rest.log(str: "Rest Request END - - - - - - -  - -  - -  - - \n")
                         DispatchQueue.main.async {
                             callback(nil, RestError.decoding(message: error.localizedDescription))
                         }
-                        Rest.log(str: "Rest response : \(error.localizedDescription)")
                     }
                 }
             }
+            
             self.session.finishTasksAndInvalidate()
         }
         self.task.resume()
@@ -564,7 +578,7 @@ private class RestHelper {
         components.append(contentsOf: [(RestHelper.escape(key), RestHelper.escape(valueString))])
         return components
     }
-
+    
     // add escape
     static func escape(_ string: String) -> String {
         
@@ -597,7 +611,7 @@ public struct CancellationToken {
     public var isCancellationRequested: Bool {
         return source?.isCancellationRequested ?? true
     }
-   
+    
     public func resetAllHandlers() {
         guard let source = source else {
             return
